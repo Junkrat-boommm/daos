@@ -601,6 +601,10 @@ pipeline {
             }
             parallel {
                 stage('Build RPM on CentOS 7') {
+                    when {
+                        beforeAgent true
+                        expression { ! skip_build_rpm('centos7') }
+                    }
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -700,6 +704,13 @@ pipeline {
                         cleanup {
                             buildRpmPost condition: 'cleanup'
                         }
+                    }
+                }
+                stage('Test dockerfile info') {
+                    steps {
+                        echo dockerBuildArgs(qb: quickbuild())
+                        echo quick_build_deps('centos7')
+                        echo pr_repos()
                     }
                 }
                 stage('Build on CentOS 7') {
