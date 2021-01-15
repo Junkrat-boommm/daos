@@ -40,7 +40,7 @@ disable_gpg_check() {
 }
 
 post_provision_config_nodes() {
-    timeout_yum 5m install dnf
+    timeout_yum 5m install dnf 'dnf-command(config-manager)'
 
     # Reserve port ranges 31416-31516 for DAOS and CART servers
     echo 31416-31516 > /proc/sys/net/ipv4/ip_local_reserved_ports
