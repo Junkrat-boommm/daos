@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016-2020 Intel Corporation.
+ * (C) Copyright 2016-2021 Intel Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -119,7 +119,6 @@ crt_hdlr_ctl_fi_attr_set(crt_rpc_t *rpc_req)
 		D_ERROR("crt_reply_send() failed. rc: %d\n", rc);
 }
 
-
 /* CRT internal RPC format definitions */
 /* uri lookup */
 CRT_RPC_DEFINE(crt_uri_lookup, CRT_ISEQ_URI_LOOKUP, CRT_OSEQ_URI_LOOKUP)
@@ -220,7 +219,7 @@ char
 	switch (opc) {
 	CRT_INTERNAL_RPCS_LIST
 	CRT_FI_RPCS_LIST
-	default:
+	default : 
 		return "DAOS";
 	}
 }
@@ -229,7 +228,7 @@ char
 
 /* CRT RPC related APIs or internal functions */
 int
-crt_internal_rpc_register(void)
+crt_internal_rpc_register(bool server)
 {
 	struct crt_proto_format	cpf;
 	int			rc;
@@ -246,6 +245,9 @@ crt_internal_rpc_register(void)
 			DP_RC(rc));
 		return rc;
 	}
+
+	if (!server)
+		return rc;
 
 	cpf.cpf_name  = "fault-injection";
 	cpf.cpf_ver   = CRT_PROTO_FI_VERSION;
@@ -336,7 +338,6 @@ crt_rpc_priv_set_ep(struct crt_rpc_priv *rpc_priv, crt_endpoint_t *tgt_ep)
 	rpc_priv->crp_have_ep = 1;
 }
 
-
 static int check_ep(crt_endpoint_t *tgt_ep, struct crt_grp_priv **ret_grp_priv)
 {
 	struct crt_grp_priv	*grp_priv;
@@ -354,7 +355,6 @@ out:
 
 	return rc;
 }
-
 
 int
 crt_req_create_internal(crt_context_t crt_ctx, crt_endpoint_t *tgt_ep,
@@ -438,6 +438,7 @@ crt_req_create(crt_context_t crt_ctx, crt_endpoint_t *tgt_ep, crt_opcode_t opc,
 out:
 	return rc;
 }
+
 int
 crt_req_set_endpoint(crt_rpc_t *req, crt_endpoint_t *tgt_ep)
 {
@@ -493,7 +494,6 @@ out:
 void
 crt_req_destroy(struct crt_rpc_priv *rpc_priv)
 {
-
 	if (rpc_priv->crp_reply_pending == 1) {
 		D_WARN("no reply sent for rpc_priv %p (opc: %#x).\n",
 		       rpc_priv, rpc_priv->crp_pub.cr_opc);
@@ -574,7 +574,6 @@ crt_issue_uri_lookup_retry(crt_context_t ctx,
 			   d_rank_t query_rank, uint32_t query_tag,
 			   struct crt_rpc_priv *rpc_priv)
 {
-
 	d_rank_list_t	*membs;
 	d_rank_t	contact_rank;
 	int		rc;
@@ -1517,7 +1516,6 @@ crt_rpc_common_hdlr(struct crt_rpc_priv *rpc_priv)
 
 	if ((self_rank != rpc_priv->crp_req_hdr.cch_dst_rank) ||
 		(crt_ctx->cc_idx != rpc_priv->crp_req_hdr.cch_dst_tag)) {
-
 		if (!skip_check) {
 			D_ERROR("Mismatch rpc: %p opc: %x rank:%d tag:%d "
 				"self:%d cc_idx:%d ep_rank:%d ep_tag:%d\n",
@@ -1665,7 +1663,6 @@ crt_req_dst_tag_get(crt_rpc_t *rpc, uint32_t *tag)
 		D_ERROR("NULL tag passed\n");
 		D_GOTO(out, rc = -DER_INVAL);
 	}
-
 
 	rpc_priv = container_of(rpc, struct crt_rpc_priv, crp_pub);
 

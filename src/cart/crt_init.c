@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016-2020 Intel Corporation.
+ * (C) Copyright 2016-2021 Intel Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,6 @@ mem_pin_workaround(void)
 exit:
 	return crt_rc;
 }
-
 
 /* first step init - for initializing crt_gdata */
 static int data_init(int server, crt_init_options_t *opt)
@@ -461,13 +460,20 @@ do_init:
 
 		crt_self_test_init();
 
-		rc = crt_opc_map_create(CRT_OPC_MAP_BITS);
+		rc = crt_opc_map_create();
 		if (rc != 0) {
 			D_ERROR("crt_opc_map_create() failed, " DF_RC "\n",
 				DP_RC(rc));
-			crt_self_test_fini();
-			D_GOTO(cleanup, rc);
+			D_GOTO(self_test, rc);
 		}
+
+		rc = crt_internal_rpc_register(server);
+		if (rc != 0) {
+			D_ERROR("crt_internal_rpc_register() failed, " DF_RC "\n",
+				DP_RC(rc));
+			D_GOTO(self_test, rc);
+		}
+
 		D_ASSERT(crt_gdata.cg_opc_map != NULL);
 
 		crt_gdata.cg_inited = 1;
@@ -483,6 +489,9 @@ do_init:
 	crt_gdata.cg_refcount++;
 
 	D_GOTO(unlock, rc);
+
+self_test:
+	crt_self_test_fini();
 
 cleanup:
 	crt_gdata.cg_inited = 0;
@@ -788,7 +797,7 @@ int crt_na_ofi_config_init(void)
 			crt_port_range_verify(port);
 
 			if (crt_gdata.cg_na_plugin == CRT_NA_OFI_PSM2)
-				port = (uint16_t) port << 8;
+				port = (uint16_t)port << 8;
 			D_DEBUG(DB_ALL, "OFI_PORT %d, using it as service "
 					"port.\n", port);
 		}
