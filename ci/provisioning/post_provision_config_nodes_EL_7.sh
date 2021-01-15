@@ -13,32 +13,7 @@ url_to_repo() {
 disable_gpg_check() {
     local REPO="$1"
 
-    # make sure the option exists otherwise disable won't disable it
-    yum-config-manager --save --setopt="$(url_to_repo "$REPO")".gpgcheck=1
-    yum-config-manager --save --setopt="$(url_to_repo "$REPO")".gpgcheck=0
-}
-
-timeout_yum() {
-    local timeout="$1"
-    shift
-
-    # now make sure everything is fully up-to-date
-    local tries=3
-    while [ $tries -gt 0 ]; do
-        if time timeout "$timeout" yum -y "$@"; then
-            # succeeded, return with success
-            return 0
-        fi
-        if [ "${PIPESTATUS[0]}" = "124" ]; then
-            # timed out, try again
-            (( tries-- ))
-            continue
-        fi
-        # yum failed for something other than timeout
-        return 1
-    done
-
-    return 1
+    dnf config-manager --save --setopt="$(url_to_repo "$REPO")".gpgcheck=0
 }
 
 post_provision_config_nodes() {
@@ -47,8 +22,8 @@ post_provision_config_nodes() {
     echo 31416-31516 > /proc/sys/net/ipv4/ip_local_reserved_ports
 
     if $CONFIG_POWER_ONLY; then
-        rm -f /etc/yum.repos.d/*.hpdd.intel.com_job_daos-stack_job_*_job_*.repo
-        yum -y erase fio fuse ior-hpc mpich-autoload               \
+        rm -f /etc/dnf.repos.d/*.hpdd.intel.com_job_daos-stack_job_*_job_*.repo
+        dnf -y erase fio fuse ior-hpc mpich-autoload               \
                      ompi argobots cart daos daos-client dpdk      \
                      fuse-libs libisa-l libpmemobj mercury mpich   \
                      openpa pmix protobuf-c spdk libfabric libpmem \
@@ -56,23 +31,23 @@ post_provision_config_nodes() {
                      slurm-example-configs slurmctld slurm-slurmmd
     fi
 
-    local yum_repo_args="--disablerepo=*"
+    local dnf_repo_args="--disablerepo=*"
 
     if [ -n "$DAOS_STACK_GROUP_REPO" ]; then
-         rm -f /etc/yum.repos.d/*"$DAOS_STACK_GROUP_REPO"
-         yum-config-manager \
+         rm -f /etc/dnf.repos.d/*"$DAOS_STACK_GROUP_REPO"
+         dnf config-manager \
              --add-repo="${REPOSITORY_URL}${DAOS_STACK_GROUP_REPO}"
     fi
 
     if [ -n "$DAOS_STACK_LOCAL_REPO" ]; then
-        rm -f /etc/yum.repos.d/*"$DAOS_STACK_LOCAL_REPO"
+        rm -f /etc/dnf.repos.d/*"$DAOS_STACK_LOCAL_REPO"
         local repo="${REPOSITORY_URL}${DAOS_STACK_LOCAL_REPO}"
-        yum-config-manager --add-repo="${repo}"
+        dnf config-manager --add-repo="${repo}"
         disable_gpg_check "$repo"
     fi
 
     # TODO: this should be per repo for the above two repos
-    yum_repo_args+=" --enablerepo=repo.dc.hpdd.intel.com_repository_*"
+    dnf_repo_args+=" --enablerepo=repo.dc.hpdd.intel.com_repository_*"
 
     if [ -n "$INST_REPOS" ]; then
         for repo in $INST_REPOS; do
@@ -87,28 +62,26 @@ post_provision_config_nodes() {
                 fi
             fi
             local repo="${JENKINS_URL}"job/daos-stack/job/"${repo}"/job/"${branch//\//%252F}"/"${build_number}"/artifact/artifacts/centos7/
-            yum-config-manager --add-repo="${repo}"
+            dnf config-manager --add-repo="${repo}"
             disable_gpg_check "$repo"
+            # TODO: this should be per repo in the above loop
             if [ -n "$INST_REPOS" ]; then
-                yum_repo_args+=",build.hpdd.intel.com_job_daos-stack*"
+                dnf_repo_args+=",build.hpdd.intel.com_job_daos-stack*"
             fi
         done
     fi
     if [ -n "$INST_RPMS" ]; then
         # shellcheck disable=SC2086
-        yum -y erase $INST_RPMS
+        dnf -y erase $INST_RPMS
     fi
-    for gpg_url in $GPG_KEY_URLS; do
-      rpm --import "$gpg_url"
-    done
     rm -f /etc/profile.d/openmpi.sh
     rm -f /tmp/daos_control.log
-    timeout_yum 5m install redhat-lsb-core
+    dnf -y install redhat-lsb-core
     # shellcheck disable=SC2086
     if [ -n "$INST_RPMS" ] &&
-       ! timeout_yum 5m $yum_repo_args install $INST_RPMS; then
+       ! dnf -y $dnf_repo_args install $INST_RPMS; then
         rc=${PIPESTATUS[0]}
-        for file in /etc/yum.repos.d/*.repo; do
+        for file in /etc/dnf.repos.d/*.repo; do
             echo "---- $file ----"
             cat "$file"
         done
@@ -123,7 +96,7 @@ post_provision_config_nodes() {
         ln -s python3.6 /usr/bin/python3
     fi
     # install the debuginfo repo in case we get segfaults
-    cat <<"EOF" > /etc/yum.repos.d/CentOS-Debuginfo.repo
+    cat <<"EOF" > /etc/dnf.repos.d/CentOS-Debuginfo.repo
 [core-0-debuginfo]
 name=CentOS-7 - Debuginfo
 baseurl=http://debuginfo.centos.org/7/$basearch/
@@ -132,8 +105,9 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-Debug-7
 enabled=0
 EOF
 
-    if ! timeout_yum 20m upgrade \
-                     --exclude fuse,mercury,daos,daos-\*; then
+    # now make sure everything is fully up-to-date
+    if ! time dnf -y upgrade \
+                  --exclude fuse,mercury,daos,daos-\*; then
         exit 1
     fi
 
