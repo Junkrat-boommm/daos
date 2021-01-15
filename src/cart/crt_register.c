@@ -49,16 +49,13 @@ crt_opc_map_create()
 {
 	struct crt_opc_map	*map;
 	uint32_t		count;
-	unsigned int		bits = CRT_OPC_MAP_BITS;
 	int			rc;
 	int			i;
+	unsigned int		bits = 8;
 
 	D_ALLOC_PTR(map);
 	if (map == NULL)
 		return -DER_NOMEM;
-
-	map->com_pid = getpid();
-	map->com_bits = bits;
 
 	count = ~(0xFFFFFFFFUL >> bits << bits) + 1;
 	D_ALLOC_ARRAY(map->com_map, count);
@@ -82,12 +79,13 @@ crt_opc_map_create()
 		D_GOTO(out, rc);
 	}
 
-	map->com_lock_init = 1;
+	D_INIT_LIST_HEAD(&map->com_coq_list);
+
 	crt_gdata.cg_opc_map = map;
 
 out:
 	if (rc != 0)
-		crt_opc_map_destroy(map);
+		crt_opc_map_destroy();
 	return rc;
 }
 
@@ -120,12 +118,13 @@ crt_opc_map_L2_destroy(struct crt_opc_map_L2 *L2_entry)
 }
 
 void
-crt_opc_map_destroy(struct crt_opc_map *map)
+crt_opc_map_destroy()
 {
-	/* struct crt_opc_info	*info; */
+	struct crt_opc_map	*map;
 	int			i;
 
-	/* map = crt_gdata.cg_opc_map; */
+	map = crt_gdata.cg_opc_map;
+
 	D_ASSERT(map != NULL);
 
 	if (map->com_map == NULL) {
@@ -138,8 +137,7 @@ crt_opc_map_destroy(struct crt_opc_map *map)
 	D_FREE(map->com_map);
 
 skip:
-	if (map->com_lock_init && map->com_pid == getpid())
-		D_RWLOCK_DESTROY(&map->com_rwlock);
+	D_RWLOCK_DESTROY(&map->com_rwlock);
 
 	crt_gdata.cg_opc_map = NULL;
 	D_FREE(map);
@@ -520,7 +518,7 @@ crt_proto_register_internal(struct crt_proto_format *cpf)
 struct proto_query_t {
 	crt_proto_query_cb_t	pq_user_cb;
 	void			*pq_user_arg;
-	crt_opcode_t		pq_base;
+	struct crt_opc_queried  *pq_coq;
 };
 
 static void
@@ -546,11 +544,18 @@ proto_query_cb(const struct crt_cb_info *cb_info)
 	user_cb_info.pq_ver = rpc_req_output->pq_ver;
 	user_cb_info.pq_arg = proto_query->pq_user_arg;
 
-	D_ERROR("Query protocol %#x\n", proto_query->pq_base);
-
 out:
-	if (proto_query->pq_user_cb)
-		proto_query->pq_user_cb(&user_cb_info);
+	if (user_cb_info.pq_rc == 0) {
+		struct crt_opc_queried  *coq = proto_query->pq_coq;
+		coq->coq_version = user_cb_info.pq_ver;
+		d_list_add(&coq->coq_list,
+			   &crt_gdata.cg_opc_map->com_coq_list);
+		D_ERROR("Query protocol %#x\n", coq->coq_version);
+	} else {
+		D_FREE(proto_query->pq_coq);
+	}
+
+	proto_query->pq_user_cb(&user_cb_info);
 
 	D_FREE(proto_query);
 }
@@ -602,9 +607,13 @@ crt_proto_query(crt_endpoint_t *tgt_ep, crt_opcode_t base_opc,
 	if (proto_query == NULL)
 		return -DER_NOMEM;
 
+	D_ALLOC_PTR(proto_query->pq_coq);
+	if (proto_query->pq_coq == NULL)
+		return -DER_NOMEM;
+
 	proto_query->pq_user_cb = cb;
 	proto_query->pq_user_arg = arg;
-	proto_query->pq_base = base_opc;
+	proto_query->pq_coq->coq_base = base_opc;
 
 	rc = crt_req_send(rpc_req, proto_query_cb, proto_query);
 	if (rc != 0)

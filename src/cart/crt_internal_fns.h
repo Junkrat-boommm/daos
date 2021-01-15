@@ -33,7 +33,7 @@ bool crt_initialized(void);
 
 /** crt_register.c */
 int crt_opc_map_create(void);
-void crt_opc_map_destroy(struct crt_opc_map *map);
+void crt_opc_map_destroy();
 struct crt_opc_info *crt_opc_lookup(struct crt_opc_map *map, crt_opcode_t opc,
 				    int locked);
 

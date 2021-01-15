@@ -216,11 +216,10 @@ char
 		return "SWIM";
 
 	switch (opc) {
-	CRT_INTERNAL_RPCS_LIST
-	CRT_FI_RPCS_LIST
-	default : 
-		return "DAOS";
+		CRT_INTERNAL_RPCS_LIST
+		CRT_FI_RPCS_LIST
 	}
+	return "DAOS";
 }
 
 #undef X

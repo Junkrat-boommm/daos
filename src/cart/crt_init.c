@@ -500,7 +500,7 @@ cleanup:
 	if (crt_gdata.cg_grp_inited == 1)
 		crt_grp_fini();
 	if (crt_gdata.cg_opc_map != NULL)
-		crt_opc_map_destroy(crt_gdata.cg_opc_map);
+		crt_opc_map_destroy();
 
 	crt_na_ofi_config_fini();
 
@@ -573,7 +573,7 @@ crt_finalize(void)
 			D_GOTO(out, rc);
 		}
 
-		crt_opc_map_destroy(crt_gdata.cg_opc_map);
+		crt_opc_map_destroy();
 
 		D_RWLOCK_UNLOCK(&crt_gdata.cg_rwlock);
 		rc = D_RWLOCK_DESTROY(&crt_gdata.cg_rwlock);
