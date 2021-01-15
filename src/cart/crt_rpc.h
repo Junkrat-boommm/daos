@@ -291,7 +291,7 @@ struct crt_rpc_priv {
 /* CRT internal opcode definitions, must be 0xFF00xxxx.*/
 enum {
 	__FIRST_INTERNAL  = CRT_PROTO_OPC(CRT_OPC_INTERNAL_BASE,
-					CRT_PROTO_INTERNAL_VERSION, 0) - 1,
+					  CRT_PROTO_INTERNAL_VERSION, 0) - 1,
 	CRT_INTERNAL_RPCS_LIST
 };
 
@@ -300,7 +300,7 @@ enum {
 /* CRT internal opcode definitions, must be 0xFF00xxxx.*/
 enum {
 	__FIRST_FI  = CRT_PROTO_OPC(CRT_OPC_FI_BASE,
-				CRT_PROTO_FI_VERSION, 0) - 1,
+				    CRT_PROTO_FI_VERSION, 0) - 1,
 	CRT_FI_RPCS_LIST
 };
 
@@ -415,7 +415,7 @@ CRT_RPC_DECLARE(crt_st_status_req,
 #define CRT_ISEQ_IV_FETCH	/* input fields */		 \
 	/* Namespace ID */					 \
 	((uint32_t)		(ifi_ivns_id)		CRT_VAR) \
-	((uint32_t)		(pad1)			CRT_VAR) \
+	((uint32_t)		(ifi_grp_ver)		CRT_VAR) \
 	((crt_group_id_t)	(ifi_ivns_group)	CRT_VAR) \
 	/* IV Key */						 \
 	((d_iov_t)		(ifi_key)		CRT_VAR) \
@@ -434,7 +434,7 @@ CRT_RPC_DECLARE(crt_iv_fetch, CRT_ISEQ_IV_FETCH, CRT_OSEQ_IV_FETCH)
 #define CRT_ISEQ_IV_UPDATE	/* input fields */		 \
 	/* IV namespace ID */					 \
 	((uint32_t)		(ivu_ivns_id)		CRT_VAR) \
-	((uint32_t)		(pad1)			CRT_VAR) \
+	((uint32_t)		(ivu_grp_ver)		CRT_VAR) \
 	((crt_group_id_t)	(ivu_ivns_group)	CRT_VAR) \
 	/* IOV for key */					 \
 	((d_iov_t)		(ivu_key)		CRT_VAR) \
@@ -458,7 +458,7 @@ CRT_RPC_DECLARE(crt_iv_update, CRT_ISEQ_IV_UPDATE, CRT_OSEQ_IV_UPDATE)
 #define CRT_ISEQ_IV_SYNC	/* input fields */		 \
 	/* IV Namespace ID */					 \
 	((uint32_t)		(ivs_ivns_id)		CRT_VAR) \
-	((uint32_t)		(pad1)			CRT_VAR) \
+	((uint32_t)		(ivs_grp_ver)		CRT_VAR) \
 	((crt_group_id_t)	(ivs_ivns_group)	CRT_VAR) \
 	/* IOV for key */					 \
 	((d_iov_t)		(ivs_key)		CRT_VAR) \
