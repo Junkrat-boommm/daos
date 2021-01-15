@@ -46,7 +46,7 @@ post_provision_config_nodes() {
     echo 31416-31516 > /proc/sys/net/ipv4/ip_local_reserved_ports
 
     if $CONFIG_POWER_ONLY; then
-        rm -f /etc/dnf.repos.d/*.hpdd.intel.com_job_daos-stack_job_*_job_*.repo
+        rm -f /etc/yum.repos.d/*.hpdd.intel.com_job_daos-stack_job_*_job_*.repo
         dnf -y erase fio fuse ior-hpc mpich-autoload               \
                      ompi argobots cart daos daos-client dpdk      \
                      fuse-libs libisa-l libpmemobj mercury mpich   \
@@ -58,13 +58,13 @@ post_provision_config_nodes() {
     local dnf_repo_args="--disablerepo=*"
 
     if [ -n "$DAOS_STACK_GROUP_REPO" ]; then
-         rm -f /etc/dnf.repos.d/*"$DAOS_STACK_GROUP_REPO"
+         rm -f /etc/yum.repos.d/*"$DAOS_STACK_GROUP_REPO"
          dnf config-manager \
              --add-repo="${REPOSITORY_URL}${DAOS_STACK_GROUP_REPO}"
     fi
 
     if [ -n "$DAOS_STACK_LOCAL_REPO" ]; then
-        rm -f /etc/dnf.repos.d/*"$DAOS_STACK_LOCAL_REPO"
+        rm -f /etc/yum.repos.d/*"$DAOS_STACK_LOCAL_REPO"
         local repo="${REPOSITORY_URL}${DAOS_STACK_LOCAL_REPO}"
         dnf config-manager --add-repo="${repo}"
         disable_gpg_check "$repo"
@@ -105,7 +105,7 @@ post_provision_config_nodes() {
     if [ -n "$INST_RPMS" ] &&
        ! dnf -y $dnf_repo_args install $INST_RPMS; then
         rc=${PIPESTATUS[0]}
-        for file in /etc/dnf.repos.d/*.repo; do
+        for file in /etc/yum.repos.d/*.repo; do
             echo "---- $file ----"
             cat "$file"
         done
@@ -120,7 +120,7 @@ post_provision_config_nodes() {
         ln -s python3.6 /usr/bin/python3
     fi
     # install the debuginfo repo in case we get segfaults
-    cat <<"EOF" > /etc/dnf.repos.d/CentOS-Debuginfo.repo
+    cat <<"EOF" > /etc/yum.repos.d/CentOS-Debuginfo.repo
 [core-0-debuginfo]
 name=CentOS-7 - Debuginfo
 baseurl=http://debuginfo.centos.org/7/$basearch/
