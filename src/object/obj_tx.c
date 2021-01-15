@@ -2190,7 +2190,10 @@ dc_tx_add_update(struct dc_tx *tx, daos_handle_t oh, uint64_t flags,
 	dcsr->dcsr_opc = DCSO_UPDATE;
 	dcsr->dcsr_nr = nr;
 	dcsr->dcsr_dkey_hash = obj_dkey2hash(obj->cob_md.omd_id, dkey);
-	dcsr->dcsr_api_flags = flags;
+	dcsr->dcsr_api_flags = flags & ~(DAOS_COND_DKEY_INSERT |
+					 DAOS_COND_DKEY_UPDATE |
+					 DAOS_COND_AKEY_INSERT |
+					 DAOS_COND_AKEY_UPDATE);
 
 	dcu = &dcsr->dcsr_update;
 	iod_array = &dcu->dcu_iod_array;
@@ -2284,7 +2287,7 @@ dc_tx_add_punch_obj(struct dc_tx *tx, daos_handle_t oh, uint64_t flags)
 		return -DER_NO_HDL;
 
 	dcsr->dcsr_opc = DCSO_PUNCH_OBJ;
-	dcsr->dcsr_api_flags = flags;
+	dcsr->dcsr_api_flags = flags & ~DAOS_COND_PUNCH;
 
 	tx->tx_write_cnt++;
 
@@ -2320,7 +2323,7 @@ dc_tx_add_punch_dkey(struct dc_tx *tx, daos_handle_t oh, uint64_t flags,
 
 	dcsr->dcsr_opc = DCSO_PUNCH_DKEY;
 	dcsr->dcsr_dkey_hash = obj_dkey2hash(obj->cob_md.omd_id, dkey);
-	dcsr->dcsr_api_flags = flags;
+	dcsr->dcsr_api_flags = flags & ~DAOS_COND_PUNCH;
 
 	tx->tx_write_cnt++;
 
@@ -2369,9 +2372,8 @@ dc_tx_add_punch_akeys(struct dc_tx *tx, daos_handle_t oh, uint64_t flags,
 
 	dcsr->dcsr_opc = DCSO_PUNCH_AKEY;
 	dcsr->dcsr_nr = nr;
-	dcsr->dcsr_dkey_hash = obj_dkey2hash(obj->cob_md.omd_id,
-					     dkey);
-	dcsr->dcsr_api_flags = flags;
+	dcsr->dcsr_dkey_hash = obj_dkey2hash(obj->cob_md.omd_id, dkey);
+	dcsr->dcsr_api_flags = flags & ~DAOS_COND_PUNCH;
 
 	tx->tx_write_cnt++;
 
@@ -2460,7 +2462,8 @@ done:
 	dcsr->dcsr_opc = DCSO_READ;
 	dcsr->dcsr_nr = nr;
 	dcsr->dcsr_dkey_hash = obj_dkey2hash(obj->cob_md.omd_id, dkey);
-	dcsr->dcsr_api_flags = flags;
+	dcsr->dcsr_api_flags = flags & ~(DAOS_COND_DKEY_FETCH |
+					 DAOS_COND_AKEY_FETCH);
 
 	tx->tx_read_cnt++;
 
