@@ -311,6 +311,7 @@ getent passwd daos_agent >/dev/null || useradd -s /sbin/nologin -r daos_agent
 %{_libdir}/daos_srv/libmgmt.so
 %{_libdir}/daos_srv/libobj.so
 %{_libdir}/daos_srv/libpool.so
+%{_libdir}/daos_srv/libsrv_pool_map.so
 %{_libdir}/daos_srv/librdb.so
 %{_libdir}/daos_srv/librdbt.so
 %{_libdir}/daos_srv/librebuild.so

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016-2020 Intel Corporation.
+ * (C) Copyright 2016-2021 Intel Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@
 #include "rpc.h"
 #include "srv_internal.h"
 #include "srv_layout.h"
+#include "srv_pool_map.h"
 
 /* Pool service */
 struct pool_svc {
@@ -3796,7 +3797,8 @@ ds_pool_update_internal(uuid_t pool_uuid, struct pool_target_id_list *tgts,
 	 * before and after. If the version hasn't changed, we are done.
 	 */
 	map_version_before = pool_map_get_version(map);
-	rc = ds_pool_map_tgts_update(map, tgts, opc, evict_rank, tgt_map_ver);
+	rc = ds_pool_map_tgts_update(map, tgts, opc, evict_rank, tgt_map_ver,
+				     true);
 	if (rc != 0)
 		D_GOTO(out_map, rc);
 
