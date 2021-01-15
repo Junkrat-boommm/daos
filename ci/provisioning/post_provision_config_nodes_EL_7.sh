@@ -10,6 +10,29 @@ url_to_repo() {
     echo "$repo"
 }
 
+timeout_yum() {
+    local timeout="$1"
+    shift
+
+    # now make sure everything is fully up-to-date
+    local tries=3
+    while [ $tries -gt 0 ]; do
+        if time timeout "$timeout" yum -y "$@"; then
+            # succeeded, return with success
+            return 0
+        fi
+        if [ "${PIPESTATUS[0]}" = "124" ]; then
+            # timed out, try again
+            (( tries-- ))
+            continue
+        fi
+        # yum failed for something other than timeout
+        return 1
+    done
+
+    return 1
+}
+
 disable_gpg_check() {
     local REPO="$1"
 
@@ -17,6 +40,7 @@ disable_gpg_check() {
 }
 
 post_provision_config_nodes() {
+    timeout_yum 5m install dnf
 
     # Reserve port ranges 31416-31516 for DAOS and CART servers
     echo 31416-31516 > /proc/sys/net/ipv4/ip_local_reserved_ports
