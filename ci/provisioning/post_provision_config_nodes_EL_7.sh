@@ -71,13 +71,6 @@ post_provision_config_nodes() {
              --add-repo="${REPOSITORY_URL}${DAOS_STACK_GROUP_REPO}"
     fi
 
-    if [ -n "$DAOS_STACK_LOCAL_REPO" ]; then
-        rm -f /etc/yum.repos.d/*"$DAOS_STACK_LOCAL_REPO"
-        local repo="${REPOSITORY_URL}${DAOS_STACK_LOCAL_REPO}"
-        dnf config-manager --add-repo="${repo}"
-        disable_gpg_check "$repo"
-    fi
-
     # TODO: this should be per repo for the above two repos
     dnf_repo_args+=" --enablerepo=repo.dc.hpdd.intel.com_repository_*"
 
