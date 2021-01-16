@@ -1,5 +1,5 @@
 /**
- * (C) Copyright 2016-2020 Intel Corporation.
+ * (C) Copyright 2016-2021 Intel Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -248,8 +248,8 @@ struct vos_dtx_act_ent {
 	 * 'dae_oid_cnt' is 1, its OID is stored in 'dae_oid_inline'.
 	 *
 	 * These information is used for EC aggregation optimization.
-	 * If server restart, then we will lost the optimization that
-	 * is not fatal.
+	 * If server restarts, then we will lose the optimization but
+	 * it is not fatal.
 	 */
 	int				 dae_oid_cnt;
 	union {
