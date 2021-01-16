@@ -39,6 +39,13 @@ disable_gpg_check() {
     dnf config-manager --save --setopt="$(url_to_repo "$REPO")".gpgcheck=0
 }
 
+dump_repos() {
+        for file in /etc/yum.repos.d/*.repo; do
+            echo "---- $file ----"
+            cat "$file"
+        done
+}
+
 post_provision_config_nodes() {
     timeout_yum 5m install dnf 'dnf-command(config-manager)'
 
@@ -105,10 +112,7 @@ post_provision_config_nodes() {
     if [ -n "$INST_RPMS" ] &&
        ! dnf -y $dnf_repo_args install $INST_RPMS; then
         rc=${PIPESTATUS[0]}
-        for file in /etc/yum.repos.d/*.repo; do
-            echo "---- $file ----"
-            cat "$file"
-        done
+        dump_repos
         exit "$rc"
     fi
     if [ ! -e /usr/bin/pip3 ] &&
@@ -132,6 +136,7 @@ EOF
     # now make sure everything is fully up-to-date
     if ! time dnf -y upgrade \
                   --exclude fuse,mercury,daos,daos-\*; then
+        dump_repos
         exit 1
     fi
 
