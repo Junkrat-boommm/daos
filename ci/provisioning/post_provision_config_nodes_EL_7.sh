@@ -36,6 +36,7 @@ timeout_yum() {
 disable_gpg_check() {
     local REPO="$1"
 
+    dnf config-manager --save --setopt="$(url_to_repo "$REPO")".gpgcheck=1
     dnf config-manager --save --setopt="$(url_to_repo "$REPO")".gpgcheck=0
 }
 
