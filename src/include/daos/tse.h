@@ -31,7 +31,7 @@ typedef struct tse_task {
 	/* daos schedule internal */
 	struct {
 		char		dt_space[TSE_PRIV_SIZE];
-	}			dt_private;
+	}			dt_private;/* 存放tse_task_private结构，即task属性，包括函数体等*/
 } tse_task_t;
 
 /**
@@ -40,10 +40,14 @@ typedef struct tse_task {
 typedef struct {
 	int		ds_result;
 
-	/* user data associated with the scheduler (completion cb data, etc.) */
+	/* user data associated with the scheduler (completion cb data, etc.)
+	 * 与调度程序关联的用户数据
+	 */
 	void		*ds_udata;
 
-	/* daos schedule internal */
+	/* daos schedule internal
+	 * daos内部的调用
+	 */
 	struct {
 		uint64_t	ds_space[48];
 	}			ds_private;
@@ -64,6 +68,9 @@ tse_task2sched(tse_task_t *task);
 /**
  *  Initialize the scheduler with an optional completion callback and pointer to
  *  user data. Caller is responsible to complete or cancel the scheduler.
+ * 
+ * 使用可选的cb和指向用户数据的指针初始化调度程序
+ * 调用者负责完成或取消该调度
  *
  * \param sched [input]		scheduler to be initialized.
  * \param comp_cb [input]	Optional callback to be called when scheduler
@@ -107,6 +114,8 @@ tse_sched_decref(tse_sched_t *sched);
 /**
  * Wait for all tasks in the scheduler to complete and finalize it.
  * If another thread is completing the scheduler, this returns immediately.
+ * 等待调度程序中的所有任务完成
+ * 如果另一个线程正在完成该调度程序，则此操作将立即返回
  *
  * \param sched	[input]	scheduler to be completed.
  * \param ret	[input]	result for scheduler completion.
@@ -118,6 +127,7 @@ tse_sched_complete(tse_sched_t *sched, int ret, bool cancel);
 
 /**
  * register complete callback for scheduler.
+ * 为调出程序注册完整的回调函数
  *
  * \param sched [input]		scheduler where to register the completion
  *                              callback.
@@ -137,6 +147,10 @@ tse_sched_register_comp_cb(tse_sched_t *sched,
  * tse_task_complete() must be done by the engine user to push progress on
  * the engine. In DAOS tse_task_complete is called by the completion CB of the
  * RPC request that is sent to the server.
+ * 
+ * 使调度程序向前执行。当其所依赖的任务完成后，运行准备好执行的任务。
+ * 请注意，使用* tse_task_complete（）完成任务必须由引擎用户完成，以推动引擎上的进度
+ * 在DAOS中，发送给服务器的RPC请求的完成时的CB将调用tse_task_complete。
  *
  * \param sched	[IN]	Scheduler to make progress on.
  *
@@ -156,12 +170,16 @@ tse_sched_check_complete(tse_sched_t *sched);
 
 /**
  * Initialize the tse_task.
+ * 初始化tse_task
  *
  * The task will be added to the scheduler task list, and
  * being scheduled later, if dependent task is provided, then
  * the task will be added to the dep list of the dependent
  * task, once the dependent task is done, then the task will
  * be added to the scheduler list.
+ * 该tse_task将被添加到调度程序任务列表中，并在之后进行调度，如果提供了从属任务，
+ * 则该任务将被添加到该所以来的任务的dep列表中，一旦以来的任务完成，则该任务将被
+ * 添加到调度程序列表中
  *
  * \param task_func [input]	the function to be executed when
  *                              the task is executed.
@@ -186,6 +204,8 @@ tse_task_create(tse_task_func_t task_func, tse_sched_t *sched, void *priv,
  * be called immediately as part of this function, \a instant should be set to
  * true; otherwise if false task would be in the scheduler init list and
  * progressed when the scheduler is progressed.
+ * 将任务添加到初始化它的调度程序中，如果任务主体函数应作为该函数的一部分立即被调用，
+ * \a instant变量值应该为true
  *
  * \param task [input]		task to be scheduled.
  * \param instant [input]	flag to indicate whether task should be
@@ -212,6 +232,7 @@ tse_task_schedule_with_delay(tse_task_t *task, bool instant, uint64_t delay);
 
 /**
  * register complete callback for the task.
+ * 为task注册任务完成时的回调函数
  *
  * \param task [input]		task to be registered complete callback.
  * \param comp_cb [input]	complete callback.
@@ -228,6 +249,7 @@ tse_task_register_comp_cb(tse_task_t *task, tse_task_cb_t comp_cb,
 
 /**
  * Mark task as completed.
+ * 标志任务完成
  *
  * \param task [input]	task to be completed.
  * \param ret [input]	ret result of the task.
@@ -239,8 +261,11 @@ tse_task_complete(tse_task_t *task, int ret);
  * Get embedded buffer of a task, user can use it to carry function parameters.
  * Embedded buffer of task has size limit, this function will return NULL if
  * \a buf_size is larger than the limit.
+ * 获取任务的嵌入式缓冲区，用户可以使用它来承载函数参数
+ * 任务的嵌入式缓冲区有大小限制，如果size大于限制，函数将返回NULL。
  *
  * User should use private data by tse_task_set_priv() to pass large parameter.
+ * 用户应通过tse_task_set_priv（）使用私有数据来传递大参数
  *
  * \param task [in] task to get the buffer.
  * \param size [in] task buffer size.
@@ -267,6 +292,8 @@ tse_task_set_priv(tse_task_t *task, void *priv);
 /**
  * Register dependency tasks that will be required to be completed before the
  * the task can be scheduled. The dependency tasks cannot be in progress.
+ * 
+ * 注册在调度任务的依赖项
  *
  * \param task	[IN]	Task to add dependencies for.
  * \param num_deps [IN]	Number of tasks in the task array.
@@ -284,6 +311,7 @@ tse_task_register_deps(tse_task_t *task, int num_deps,
 /**
  * Register prepare and completion callbacks that will be executed right before
  * the task is scheduled and after it completes respectively.
+ * 注册准备和完成回调，这些回调将分别在计划任务之前和完成任务之后执行。
  *
  * \param task	[IN]	Task to add CBs on.
  * \param prep_cb [IN]	Prepare callback.
@@ -313,6 +341,7 @@ tse_task_register_cbs(tse_task_t *task, tse_task_cb_t prep_cb,
  * task is reintialzed in one of its completion CBs, that callback and the ones
  * that have already executed will have been removed from the cb list and will
  * need to be re-registered by the user after re-insertion.
+ * 重新初始化任务并将其移到scheduler的初始化列表中，该任务必须具有要重新插入到scheduler中的函数体
  *
  * \param task	[IN]	Task to reinitialize
  *
@@ -340,6 +369,7 @@ tse_task_reinit_with_delay(tse_task_t *task, uint64_t delay);
  * or not started yet, and must have a > 0 valid ref count (not freed).
  * This allows a user to reuse a task with a different body function and not
  * have to recreate a task for a different operation.
+ * 用一个新的函数体重置task，该任务必须已经被完成或者还未开始，并且必须具有>0的有效引用计数。
  *
  * \param task	[IN]	Task to reset
  *
@@ -358,12 +388,14 @@ tse_task_decref(tse_task_t *task);
 /**
  * Add a newly created task to a list. It returns error if the task is already
  * running or completed.
+ * 将一个新创造的任务添加到列表中
  */
 int
 tse_task_list_add(tse_task_t *task, d_list_t *head);
 
 /**
  * Remove the task from list head.
+ * 移除表头任务
  */
 void
 tse_task_list_del(tse_task_t *task);
@@ -371,12 +403,14 @@ tse_task_list_del(tse_task_t *task);
 /**
  * The first task linked on list \a head, it returns NULL
  * if the list is empty.
+ * 链接在表头上的第一个任务
  */
 tse_task_t *
 tse_task_list_first(d_list_t *head);
 
 /**
  * Schedule all tasks attached on list \a head.
+ * 调度所有表头上的任务
  */
 void
 tse_task_list_sched(d_list_t *head, bool instant);

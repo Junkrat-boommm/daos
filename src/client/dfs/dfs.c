@@ -65,7 +65,9 @@
 #define CSIZE_IDX	(CTIME_IDX + sizeof(time_t))
 #define SYML_IDX	(CSIZE_IDX + sizeof(daos_size_t))
 
-/** Parameters for dkey enumeration */
+/** Parameters for dkey enumeration、
+ * dkey枚举的参数
+ */
 #define ENUM_DESC_NR	10
 #define ENUM_DESC_BUF	(ENUM_DESC_NR * DFS_MAX_PATH)
 #define ENUM_XDESC_BUF	(ENUM_DESC_NR * (DFS_MAX_XATTR_NAME + 2))
@@ -75,18 +77,24 @@
 #define SB_HI		0
 #define ROOT_HI		1
 
-/** Max recursion depth for symlinks */
+/** Max recursion depth for symlinks
+ * 符号链接的最大递归深度
+ */
 #define DFS_MAX_RECURSION 40
 
 typedef uint64_t dfs_magic_t;
 typedef uint16_t dfs_sb_ver_t;
 typedef uint16_t dfs_layout_ver_t;
 
-/** object struct that is instantiated for a DFS open object */
+/** object struct that is instantiated for a DFS open object
+ * 为DFS打开对象实例化的object结构体
+ */
 struct dfs_obj {
 	/** DAOS object ID */
 	daos_obj_id_t		oid;
-	/** DAOS object open handle */
+	/** DAOS object open handle
+	 * 为0时表示invalid
+	 */
 	daos_handle_t		oh;
 	/** mode_t containing permissions & type */
 	mode_t			mode;
@@ -100,10 +108,13 @@ struct dfs_obj {
 	char			*value;
 };
 
-/** dfs struct that is instantiated for a mounted DFS namespace */
+/** dfs struct that is instantiated for a mounted DFS namespace
+ * 为已挂载的DFS命名空间实例化的dfs结构体
+ */
 struct dfs {
 	/** flag to indicate whether the dfs is mounted */
 	bool			mounted;
+	// CONFUSE: 什么是DTX
 	/** flag to indicate whether dfs is mounted with balanced mode (DTX) */
 	bool			use_dtx;
 	/** lock for threadsafety */
@@ -118,7 +129,9 @@ struct dfs {
 	daos_handle_t		poh;
 	/** Open container handle of the DFS */
 	daos_handle_t		coh;
-	/** Object ID reserved for this DFS (see oid_gen below) */
+	/** Object ID reserved for this DFS (see oid_gen below)
+	 * 为此DFS保留的OID
+	 */
 	daos_obj_id_t		oid;
 	/** superblock object OID */
 	daos_obj_id_t		super_oid;
@@ -128,7 +141,9 @@ struct dfs {
 	dfs_obj_t		root;
 	/** DFS container attributes (Default chunk size, oclass, etc.) */
 	dfs_attr_t		attr;
-	/** Optional prefix to account for when resolving an absolute path */
+	/** Optional prefix to account for when resolving an absolute path
+	 * 绝对路径前缀
+	 */
 	char			*prefix;
 	daos_size_t		prefix_len;
 };
@@ -224,15 +239,20 @@ oid_cp(daos_obj_id_t *dst, daos_obj_id_t src)
 	dst->lo = src.lo;
 }
 
+/* 关闭有效的事务句柄th，如遇到rc=ERESTART，则需要先进行重启 */
 static inline int
 check_tx(daos_handle_t th, int rc)
 {
-	/** if we are not using a DTX, no restart is possible */
+	/** if we are not using a DTX, no restart is possible
+	 * 如果不使用DTX，则无法重新启动
+	 */
 	if (daos_handle_is_valid(th)) {
 		int ret;
 
 		if (rc == ERESTART) {
-			/** restart the TX handle */
+			/** restart the TX handle
+			 * 重启事务句柄
+			 */
 			rc = daos_tx_restart(th, NULL);
 			if (rc) {
 				/** restart failed, so just fail */
@@ -244,7 +264,9 @@ check_tx(daos_handle_t th, int rc)
 			}
 		}
 
-		/** on success or non-restart errors, close the handle */
+		/** on success or non-restart errors, close the handle
+		 * 关闭事务句柄
+		 */
 		ret = daos_tx_close(th,  NULL);
 		if (ret) {
 			D_ERROR("daos_tx_close() failed (%d)\n", ret);
@@ -256,6 +278,10 @@ check_tx(daos_handle_t th, int rc)
 	return rc;
 }
 
+/* 
+ * 选择对象类(容器中文件的对象类)
+ *  
+ */
 int
 dfs_oclass_select(daos_handle_t poh, daos_oclass_id_t oc_id,
 		  daos_oclass_id_t *oc_id_p)
@@ -264,7 +290,7 @@ dfs_oclass_select(daos_handle_t poh, daos_oclass_id_t oc_id,
 	struct pl_map_attr	 attr;
 	int			 rc;
 
-	pool = dc_hdl2pool(poh);
+	pool = dc_hdl2pool(poh); // 获取对应的pool
 	D_ASSERT(pool);
 
 	rc = pl_map_query(pool->dp_pool, &attr);
@@ -288,6 +314,11 @@ dfs_oclass_select(daos_handle_t poh, daos_oclass_id_t oc_id,
  * The oid.hi value has the high 32 bits reserved for DAOS (obj class, type,
  * etc.). The lower 32 bits will be used locally by the dfs mount point, and
  * hence discarded when the dfs is unmounted.
+ * 
+ * 对象的OID的生成方式
+ * 
+ * 高32位保留给DAOS用于对内部元数据进行编码
+ * 
  */
 static int
 oid_gen(dfs_t *dfs, daos_oclass_id_t oclass, bool file, daos_obj_id_t *oid)
@@ -303,7 +334,9 @@ oid_gen(dfs_t *dfs, daos_oclass_id_t oclass, bool file, daos_obj_id_t *oid)
 		return rc;
 
 	D_MUTEX_LOCK(&dfs->lock);
-	/** If we ran out of local OIDs, alloc one from the container */
+	/** If we ran out of local OIDs, alloc one from the container
+	 * 如果用完了本地的OID，从容器中申请一个
+	 */
 	if (dfs->oid.hi >= MAX_OID_HI) {
 		/** Allocate an OID for the namespace */
 		rc = daos_cont_alloc_oids(dfs->coh, 1, &dfs->oid.lo, NULL);
@@ -315,7 +348,9 @@ oid_gen(dfs_t *dfs, daos_oclass_id_t oclass, bool file, daos_obj_id_t *oid)
 		dfs->oid.hi = 0;
 	}
 
-	/** set oid and lo, bump the current hi value */
+	/** set oid and lo, bump the current hi value
+	 * 增加hi值
+	 */
 	oid->lo = dfs->oid.lo;
 	oid->hi = dfs->oid.hi++;
 	D_MUTEX_UNLOCK(&dfs->lock);
@@ -325,7 +360,9 @@ oid_gen(dfs_t *dfs, daos_oclass_id_t oclass, bool file, daos_obj_id_t *oid)
 		feat = DAOS_OF_DKEY_UINT64 | DAOS_OF_KV_FLAT |
 			DAOS_OF_ARRAY_BYTE;
 
-	/** generate the daos object ID (set the DAOS owned bits) */
+	/** generate the daos object ID (set the DAOS owned bits)
+	 * 设置oid的高32位
+	 */
 	daos_obj_set_oid(oid, feat, oclass, 0);
 
 	return 0;
@@ -343,21 +380,35 @@ concat(const char *s1, const char *s2)
 	return result;
 }
 
+/**
+ * 
+ * \param[in] oh
+ * \param[in] th
+ * \param[in] name	dkey:entry_name
+ * \param[in] len	length of "name"
+ * \param[in] fetch_sym	获取的entry为符号链接
+ * \param[out] exists // 是否存在该entry
+ * \param[out] entry // 
+ * \param[in] xnr	扩展属性的个数？
+ * \param[in] xname	扩展属性的名称（akey）
+ * \param[in] xvals	扩展属性的值（recx）
+ * \param[out] xsizes
+ */
 static int
 fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 	    bool fetch_sym, bool *exists, struct dfs_entry *entry, int xnr,
 	    char *xnames[], void *xvals[], daos_size_t *xsizes)
 {
 	d_sg_list_t	l_sgl, *sgl;
-	d_iov_t		sg_iovs[INODE_AKEYS];
+	d_iov_t		sg_iovs[INODE_AKEYS];	// 存放该entry的所有属性
 	daos_iod_t	l_iod, *iod;
 	daos_recx_t	recx;
 	daos_key_t	dkey;
 	unsigned int	i;
 	char		**pxnames = NULL;
-	d_iov_t		*sg_iovx = NULL;
+	d_iov_t		*sg_iovx = NULL;	// 扩展属性的值
 	d_sg_list_t	*sgls = NULL;
-	daos_iod_t	*iods = NULL;
+	daos_iod_t	*iods = NULL; // I/O descriptor
 	int		rc;
 
 	D_ASSERT(name);
@@ -366,6 +417,7 @@ fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 	if (strcmp(name, ".") == 0)
 		D_ASSERT(0);
 
+	/* 设置扩展属性 */
 	if (xnr) {
 		D_ALLOC_ARRAY(pxnames, xnr);
 		if (pxnames == NULL)
@@ -382,7 +434,8 @@ fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 		D_ALLOC_ARRAY(iods, xnr + 1);
 		if (iods == NULL)
 			D_GOTO(out, rc = ENOMEM);
-
+		
+		/** 设置iods中的扩展属性 */
 		for (i = 0; i < xnr; i++) {
 			pxnames[i] = concat("x:", xnames[i]);
 			if (pxnames[i] == NULL)
@@ -408,6 +461,7 @@ fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 		iod = &l_iod;
 	}
 
+	/** 设置dkey、akey以及recx（文件属性） */
 	d_iov_set(&dkey, (void *)name, len);
 	d_iov_set(&iod->iod_name, INODE_AKEY_NAME, sizeof(INODE_AKEY_NAME) - 1);
 	iod->iod_nr	= 1;
@@ -418,7 +472,7 @@ fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 	iod->iod_type	= DAOS_IOD_ARRAY;
 	iod->iod_size	= 1;
 	i = 0;
-
+	/* 设置条目属性，用于调用fetch_entry进行填充 */
 	d_iov_set(&sg_iovs[i++], &entry->mode, sizeof(mode_t));
 	d_iov_set(&sg_iovs[i++], &entry->oid, sizeof(daos_obj_id_t));
 	d_iov_set(&sg_iovs[i++], &entry->atime, sizeof(time_t));
@@ -430,6 +484,7 @@ fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 	sgl->sg_nr_out	= 0;
 	sgl->sg_iovs	= sg_iovs;
 
+	/** Fetch object records from co-located arrays */
 	rc = daos_obj_fetch(oh, th, 0, &dkey, xnr + 1, iods ? iods : iod,
 			    sgls ? sgls : sgl, NULL, NULL);
 	if (rc) {
@@ -441,6 +496,7 @@ fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 	for (i = 0; i < xnr; i++)
 		xsizes[i] = iods[i].iod_size;
 
+	/** 如果需要获取符号链接的话 */
 	if (fetch_sym && S_ISLNK(entry->mode)) {
 		char *value;
 
@@ -514,6 +570,7 @@ remove_entry(dfs_t *dfs, daos_handle_t th, daos_handle_t parent_oh,
 	if (rc)
 		return daos_der2errno(rc);
 
+	/** Punch an entire object with all keys associated with it. */
 	rc = daos_obj_punch(oh, th, 0, NULL);
 	if (rc) {
 		daos_obj_close(oh, NULL);
@@ -526,11 +583,15 @@ remove_entry(dfs_t *dfs, daos_handle_t th, daos_handle_t parent_oh,
 
 punch_entry:
 	d_iov_set(&dkey, (void *)name, len);
+	/** 从父目录对象中删除该符号链接对应的dkey */
 	rc = daos_obj_punch_dkeys(parent_oh, th, DAOS_COND_PUNCH, 1, &dkey,
 				  NULL);
 	return daos_der2errno(rc);
 }
 
+/**
+ * 插入一个entry
+ */
 static int
 insert_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 	     struct dfs_entry *entry)
@@ -569,7 +630,7 @@ insert_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 
 	sgl.sg_nr	= i;
 	sgl.sg_nr_out	= 0;
-	sgl.sg_iovs	= sg_iovs;
+	sgl.sg_iovs	= sg_iovs; /** sg_iovs的封装 */
 
 	rc = daos_obj_update(oh, th, DAOS_COND_DKEY_INSERT, &dkey, 1, &iod,
 			     &sgl, NULL);
@@ -583,6 +644,7 @@ insert_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 	return 0;
 }
 
+/** 统计该对象中entries的数目 */
 static int
 get_num_entries(daos_handle_t oh, daos_handle_t th, uint32_t *nr,
 		bool check_empty)
@@ -623,6 +685,9 @@ get_num_entries(daos_handle_t oh, daos_handle_t th, uint32_t *nr,
 	return 0;
 }
 
+/** 
+ * 获取entry对应的文件状态
+ */
 static int
 entry_stat(dfs_t *dfs, daos_handle_t th, daos_handle_t oh, const char *name,
 	   size_t len, struct dfs_obj *obj, struct stat *stbuf)
@@ -654,6 +719,7 @@ entry_stat(dfs_t *dfs, daos_handle_t th, daos_handle_t oh, const char *name,
 	{
 		daos_handle_t file_oh;
 
+		/** 打开文件 */
 		rc = daos_array_open_with_attr(dfs->coh, entry.oid, th,
 					       DAOS_OO_RO, 1, entry.chunk_size ?
 					       entry.chunk_size :
@@ -665,6 +731,7 @@ entry_stat(dfs_t *dfs, daos_handle_t th, daos_handle_t oh, const char *name,
 			return daos_der2errno(rc);
 		}
 
+		/* Query the number of records in the array object.(size) */
 		rc = daos_array_get_size(file_oh, th, &size, NULL);
 		if (rc) {
 			daos_array_close(file_oh, NULL);
@@ -723,6 +790,12 @@ check_name(const char *name, size_t *_len)
 	return 0;
 }
 
+/** 
+ * 检查uid/gid具有的权限
+ * 
+ * \param mode：访问模式
+ * \param mask：权限标记
+ */
 static int
 check_access(dfs_t *dfs, uid_t uid, gid_t gid, mode_t mode, int mask)
 {
@@ -766,6 +839,12 @@ check_access(dfs_t *dfs, uid_t uid, gid_t gid, mode_t mode, int mask)
 	return 0;
 }
 
+/**
+ * 打开文件
+ * 
+ * 
+ * 
+ */
 static int
 open_file(dfs_t *dfs, daos_handle_t th, dfs_obj_t *parent, int flags,
 	  daos_oclass_id_t cid, daos_size_t chunk_size, struct dfs_entry *entry,
