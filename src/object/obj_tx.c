@@ -2036,6 +2036,8 @@ dc_tx_restart_end(struct dc_tx *tx)
  * Restart a transaction that has encountered a -DER_TX_RESTART. This shall not
  * be used to restart a transaction created by dc_tx_open_snap or
  * dc_tx_local_open, either of which shall not encounter -DER_TX_RESTART.
+ * 
+ * 重启事务，不得将其用于重启由dc_tx_open_snap或dc_tx_local_open创建的事务。
  */
 int
 dc_tx_restart(tse_task_t *task)

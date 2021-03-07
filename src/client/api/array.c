@@ -83,6 +83,7 @@ daos_array_open_with_attr(daos_handle_t coh, daos_obj_id_t oid,
 		return rc;
 
 	args = dc_task_get_args(task);
+	/** 参数传递 */
 	args->coh		= coh;
 	args->oid		= oid;
 	args->th		= th;

@@ -5,6 +5,7 @@
  */
 /**
  * DAOS Unified namespace functionality.
+ * DAOS统一名称空间功能
  */
 
 #define D_LOGFAC	DD_FAC(duns)

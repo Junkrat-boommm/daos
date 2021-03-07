@@ -178,6 +178,10 @@ daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
  * is updated in the object, and the API just returns an OH to the user. If the
  * array was accessed with different cell_size and chunk_size before, accessing
  * it again will introduce corruption in the array data.
+ * 
+ * 使用用户指定的数组属性打开一个Array对象，如果对象不存在，则与create调用相同，只是对象中
+ * 没有任何更新，并且API只是向用户返回oh。如果以前使用不同的cell_size和chunk_size访问数组，
+ * 则再次访问将会在数组数据中引入损坏。
  *
  * \param[in]	coh	Container open handle.
  * \param[in]	oid	Object ID. It is required that the feat for dkey type
@@ -189,6 +193,7 @@ daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
  * \param[in]	chunk_size
  *			Contiguous bytes to store per DKey before moving to a
  *			different dkey.
+ * 在移至*不同的dkey之前，每个DKey都要存储的连续字节。
  * \param[out]	oh	Returned array object open handle.
  * \param[in]	ev	Completion event, it is optional and can be NULL.
  *			The function will run in blocking mode if \a ev is NULL.
@@ -340,7 +345,10 @@ daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
  * Set the array size (truncate) in records. If array is shrinking, we punch
  * dkeys/records above the required size. If the array is epxanding, we insert 1
  * record at the corresponding size. This is NOT equivalent to an allocate.
- *
+ * 
+ * 在记录中设置阵列大小（截断）。
+ * 如果阵列正在缩小，我们会在所需尺寸以上打孔*驴/记录。如果阵列是epxand，我们将以相应的大小插入1*记录。这不等同于分配。
+ * size=0代表清空
  *
  * \param[in]	oh	Array object open handle.
  * \param[in]	th	Transaction handle.

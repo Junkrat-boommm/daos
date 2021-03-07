@@ -81,6 +81,8 @@ daos_event_complete(daos_event_t *ev, int rc);
 
 /**
  * Mark the event launched, i.e. move this event to running list.
+ * 
+ * 将事件标记为已启动，即将该事件移至运行列表。
  *
  * \param ev		[IN]	event to launch.
  */
@@ -147,7 +149,9 @@ dc_task_create(tse_task_func_t func, tse_sched_t *sched, daos_event_t *ev,
 int
 dc_task_schedule(tse_task_t *task, bool instant);
 
-/** return embedded parameters of task created by dc_task_create */
+/** return embedded parameters of task created by dc_task_create
+ * 返回由dc_task_create创建的任务的嵌入式参数，以供参数传递
+ */
 void *
 dc_task_get_args(tse_task_t *task);
 

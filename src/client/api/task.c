@@ -43,9 +43,12 @@ task_comp_event(tse_task_t *task, void *data)
 /**
  * Create a new task and associate it with the input event. If the event
  * is NULL, the private event will be taken.
+ * 创建一个新任务，并将其与输入事件相关联。如果输入事件为NULL，则将使用私有事件
+
  *
  * NB: task created by this function can only be scheduled by calling
  * dc_task_sched_ev(), otherwise the event will never be completed.
+ * 通过此函数创建的任务只能通过调用dc_task_sched_ev()来调用，否则，事件将无法完成
  */
 int
 dc_task_create(tse_task_func_t func, tse_sched_t *sched, daos_event_t *ev,
@@ -56,6 +59,7 @@ dc_task_create(tse_task_func_t func, tse_sched_t *sched, daos_event_t *ev,
 	int		       rc;
 
 	if (sched == NULL) {
+		/** 检索线程的私有事件作为调度程序 */
 		if (ev == NULL) {
 			rc = daos_event_priv_get(&ev);
 			if (rc != 0)
@@ -71,7 +75,9 @@ dc_task_create(tse_task_func_t func, tse_sched_t *sched, daos_event_t *ev,
 	args = task_ptr2args(task);
 	args->ta_magic = DAOS_TASK_MAGIC;
 	if (ev) {
-		/** register a comp cb on the task to complete the event */
+		/** register a comp cb on the task to complete the event
+		 * 注册完成回调函数
+		 */
 		rc = tse_task_register_comp_cb(task, task_comp_event, NULL, 0);
 		if (rc != 0)
 			D_GOTO(failed, rc);
@@ -90,6 +96,7 @@ dc_task_create(tse_task_func_t func, tse_sched_t *sched, daos_event_t *ev,
  * of \a task is the private event, this function will wait until completion
  * of the task, otherwise it returns immediately and its completion will be
  * found by testing event or polling on EQ.
+ * 
  *
  * The task will be executed immediately if \a instant is true.
  */
@@ -101,11 +108,11 @@ dc_task_schedule(tse_task_t *task, bool instant)
 
 	D_ASSERT(task_is_valid(task));
 
-	ev = task_ptr2args(task)->ta_ev;
+	ev = task_ptr2args(task)->ta_ev; /** args中传入的event */
 	if (ev) {
 		rc = daos_event_launch(ev);
 		if (rc) {
-			tse_task_complete(task, rc);
+			tse_task_complete(task, rc); // 阻塞该函数，直到该task执行完成
 			/* error has been reported to event */
 			D_GOTO(out, rc = 0);
 		}

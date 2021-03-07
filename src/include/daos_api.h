@@ -138,6 +138,10 @@ daos_tx_close(daos_handle_t th, daos_event_t *ev);
  * after this transaction was originally opened is undefined. If callers would
  * like to retry transactions for their own purposes, they shall open new
  * transactions instead. This is a local operation, no RPC involved.
+ * 
+ * 遇到-DER_TX_RESTART错误后，重新启动事务。
+ * 删除所有通过事务句柄th发出的IO。
+ * 最初打开此事务后，重启的事务是否观察到已提交的有冲突的修改是不确定的。
  *
  *
  * \param[in]	th	Transaction handle to be restarted.

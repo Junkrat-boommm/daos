@@ -147,15 +147,24 @@ struct daos_oid_list {
  *
  * A record is an atomic blob of arbitrary length which is always
  * fetched/updated as a whole. The size of a record can change over time.
+ * 
+ * 记录是任意长度的原子blob，始终整体上被获取/更新，记录的大小可以随时间变化。
+ * 
  * A record is uniquely identified by the following composite key:
+ * 记录由以下组合键唯一标识：
  * - the distribution key (aka dkey) denotes a set of arrays co-located on the
  *   same storage targets. The dkey has an arbitrary size.
+ * - 分发键（又名dkey）表示共同位于相同存储目标上的一组数组。dkey具有任意大小。  
  * - the attribute key (aka akey) distinguishes individual arrays. Likewise, the
  *   akey has a arbitrary size.
+ * - 属性键（也称为akey）区分各个数组。同样，akey具有任意大小。 
  * - the index within an array discriminates individual records. The index
  *   is an integer that ranges from zero to infinity. A range of indices
  *   identifies a contiguous set of records called extent. All records inside an
  *   extent must have the same size.
+ * - 数组中的索引区分各个记录。索引是一个整数，范围从零到无穷大。
+ *   索引范围标识了一组称为范围的连续记录。 
+ *   范围内的所有记录必须具有相同的大小。
  */
 
 /**
@@ -188,6 +197,9 @@ typedef enum {
  * An I/O descriptor is a list of extents (effectively records associated with
  * contiguous array indices) to update/fetch in a particular array identified by
  * its akey.
+ * 
+ * I/O描述符是一个范围列表（与连续阵列索引相关的有效记录）以更新/获取由其akey标识的特定数组？
+ * 
  */
 typedef struct {
 	/** akey for this iod */
@@ -203,7 +215,7 @@ typedef struct {
 	 * \a iod_size would be the size of the single atomic value. The idx is
 	 * ignored and the rx_nr is also required to be 1.
 	 */
-	daos_iod_type_t		iod_type;
+	daos_iod_type_t		iod_type; /** value的类型 */
 	/** Size of the single value or the record size of the array */
 	daos_size_t		iod_size;
 	/** Per akey conditional. If DAOS_COND_PER_AKEY not set, this is
@@ -219,6 +231,8 @@ typedef struct {
 	 * Array of extents, where each extent defines the index of the first
 	 * record in the extent and the number of records to access. If the
 	 * type of the iod is single, this is ignored.
+	 * 
+	 * 如果value类型不是array，则忽略
 	 */
 	daos_recx_t		*iod_recxs;
 } daos_iod_t;

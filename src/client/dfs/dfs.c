@@ -536,7 +536,7 @@ fetch_entry(daos_handle_t oh, daos_handle_t th, const char *name, size_t len,
 		}
 	}
 
-	if (sgl->sg_nr_out == 0)
+	if (sgl->sg_nr_out == 0)/** 判断是否存在的逻辑 */
 		*exists = false;
 	else
 		*exists = true;
@@ -842,7 +842,10 @@ check_access(dfs_t *dfs, uid_t uid, gid_t gid, mode_t mode, int mask)
 /**
  * 打开文件
  * 
- * 
+ * 首先调用fetch_entry判断该文件对应的entry是否存在与父对象中
+ * 然后获取oid
+ * 调用daos_array_open_with_attr打开文件对应的数组对象
+ * 然后将其插入到父对象中
  * 
  */
 static int
@@ -855,11 +858,15 @@ open_file(dfs_t *dfs, daos_handle_t th, dfs_obj_t *parent, int flags,
 	int	rc;
 
 	if (flags & O_CREAT) {
-		bool oexcl = flags & O_EXCL;
+		bool oexcl = flags & O_EXCL; // O_EXCL保证只有文件事先不存在
 
 		/*
 		 * If O_CREATE | O_EXCL, we just use conditional check to fail
-		 * when inserting the file. Otherwise we need the fetch to make
+		 * when inserting the file. 
+		 * 
+		 * 我们只有在插入文件时使用条件检查才能失败
+		 * 
+		 * Otherwise we need the fetch to make
 		 * sure there is no existing entry that is not a file, or it's
 		 * just a file open if the file entry exists.
 		 */
@@ -880,7 +887,10 @@ open_file(dfs_t *dfs, daos_handle_t th, dfs_obj_t *parent, int flags,
 			return rc;
 		oid_cp(&entry->oid, file->oid);
 
-		/** Open the array object for the file */
+		/** Open the array object for the file 
+		 * file->oh即打开的数组对象句柄，
+		 * 如果对象不存在，该api会进行create
+		 */
 		rc = daos_array_open_with_attr(dfs->coh, file->oid, th,
 					       DAOS_OO_RW, 1,
 					       chunk_size ? chunk_size :
@@ -934,7 +944,9 @@ fopen:
 	if (daos_mode == -1)
 		return EINVAL;
 
-	/** Open the byte array */
+	/** Open the byte array
+	 * 打开数组对象
+	 */
 	file->mode = entry->mode;
 	rc = daos_array_open_with_attr(dfs->coh, entry->oid, th, daos_mode, 1,
 				       entry->chunk_size ? entry->chunk_size :
@@ -945,7 +957,7 @@ fopen:
 		return daos_der2errno(rc);
 	}
 
-	if (flags & O_TRUNC) {
+	if (flags & O_TRUNC) { // 清空file
 		rc = daos_array_set_size(file->oh, th, 0, NULL);
 		if (rc) {
 			D_ERROR("Failed to truncate file (%d)\n", rc);
@@ -971,6 +983,9 @@ fopen:
 /*
  * create a dir object. If caller passes parent obj, we check for existence of
  * object first.
+ * 
+ * 
+ * 
  */
 static inline int
 create_dir(dfs_t *dfs, daos_handle_t parent_oh, daos_oclass_id_t cid,

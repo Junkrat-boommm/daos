@@ -119,8 +119,8 @@ In other words, they shall describe the DKEY-AKEY-Value in a single VOS pool.
 
 VOS objects are not created explicitly but are created on the first write by creating the object metadata and inserting a reference to it in the owning container's object index.
 All object updates log the data for each update, which may be an object, DKEY, AKEY, a single value, or array value punch or an update to a single value or array value.
-Note that "punch" of an extent of an array object is logged as zeroed extents, rather than causing relevant array extents or key values to be discarded. A punch of an object, DKEY, AKEY, or single value is logged, so that reads at a later timestamp see no data.
-This ensures that the full version history of objects remain accessible.   The DAOS api, however, only allows accessing data at snapshots so VOS aggregation can aggressively remove objects, keys, and values that are no longer accessible at a known snapshot.
+Note that "punch" of an extent of an array object is logged as zeroed extents, rather than causing relevant array extents or key values to be discarded. `A punch of an object, DKEY, AKEY, or single value is logged, so that reads at a later timestamp see no data`.
+This ensures that the full version history of objects remain accessible.   ·The DAOS api, however, only allows accessing data at snapshots· so VOS aggregation can aggressively remove objects, keys, and values that are no longer accessible at a known snapshot.
 
 <a id="7a"></a>
 ![../../doc/graph/Fig_067.png](../../doc/graph/Fig_067.png "VOS Pool storage layout")

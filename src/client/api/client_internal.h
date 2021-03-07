@@ -118,6 +118,8 @@ daos_event_priv_reset(void);
 
 /**
  * Retrieve the private per-thread event
+ * 
+ * 检索每个线程的私有事件
  *
  * \param ev [OUT]	per-thread event.
  */

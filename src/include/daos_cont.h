@@ -468,6 +468,8 @@ daos_cont_del_attr(daos_handle_t coh, int n, char const *const names[],
  * tracked in the container metadata for future access to that container. This
  * doesn't guarantee that the IDs allocated are sequential; and several ID
  * ranges could be discarded at container close.
+ * 
+ * 分配一组唯一的64位未签名的整数用于该容器的对象ID申请，这并不保证分配的ID是连续的。
  *
  * \param[in]	coh	Container open handle.
  * \param[in]	num_oids
