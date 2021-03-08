@@ -980,11 +980,13 @@ fopen:
 	return 0;
 }
 
-/*
- * create a dir object. If caller passes parent obj, we check for existence of
+/**
+ * @brief create a dir object. If caller passes parent obj, we check for existence of
  * object first.
  * 
+ * 调用daos_obj_open创建目录
  * 
+ * @param parent 父对象，若不为空需要先进行检查
  * 
  */
 static inline int
@@ -999,7 +1001,7 @@ create_dir(dfs_t *dfs, daos_handle_t parent_oh, daos_oclass_id_t cid,
 		return rc;
 
 	/** Open the Object - local operation */
-	rc = daos_obj_open(dfs->coh, dir->oid, DAOS_OO_RW, &dir->oh, NULL);
+	rc = daos_obj_open(dfs->coh, dir->oid, DAOS_OO_RW, &dir->oh, NULL); 
 	if (rc) {
 		D_ERROR("daos_obj_open() Failed (%d)\n", rc);
 		return daos_der2errno(rc);
@@ -1008,6 +1010,14 @@ create_dir(dfs_t *dfs, daos_handle_t parent_oh, daos_oclass_id_t cid,
 	return 0;
 }
 
+
+/**
+ * @brief 打开指定name的dir，根据flag，如果有必要，创建一个dir entry
+ * 
+ * 如果文件已存在，首先调用fetch_entry从父对象中查找对应的entry，并获得oid，
+ * 在根据oid，调用daos_obj_open打开该dir。
+ * 若文件不存在，则调用create_dir进行创建，然后在将对应的entry插入到父对象中，然后直接返回
+ */
 static int
 open_dir(dfs_t *dfs, daos_handle_t th, daos_handle_t parent_oh, int flags,
 	 daos_oclass_id_t cid, struct dfs_entry *entry, size_t len,
@@ -1027,7 +1037,7 @@ open_dir(dfs_t *dfs, daos_handle_t th, daos_handle_t parent_oh, int flags,
 		entry->atime = entry->mtime = entry->ctime = time(NULL);
 		entry->chunk_size = 0;
 
-		rc = insert_entry(parent_oh, th, dir->name, len, entry);
+		rc = insert_entry(parent_oh, th, dir->name, len, entry); 
 		if (rc != 0) {
 			daos_obj_close(dir->oh, NULL);
 			D_ERROR("Inserting dir entry %s failed (%d)\n",
@@ -1063,11 +1073,18 @@ open_dir(dfs_t *dfs, daos_handle_t th, daos_handle_t parent_oh, int flags,
 		return daos_der2errno(rc);
 	}
 	dir->mode = entry->mode;
-	oid_cp(&dir->oid, entry->oid);
+	oid_cp(&dir->oid, entry->oid); 
 
 	return 0;
 }
 
+/**
+ * @brief 打开指定名称的符号链接
+ * 
+ * 只是在当flags & O_CREAT == 1时，调用insert_entry插入到父对象中
+ * 
+ * @param value 符号链接的值
+ */
 static int
 open_symlink(dfs_t *dfs, daos_handle_t th, dfs_obj_t *parent, int flags,
 	     const char *value, struct dfs_entry *entry, size_t len,
@@ -1110,6 +1127,13 @@ open_symlink(dfs_t *dfs, daos_handle_t th, dfs_obj_t *parent, int flags,
 	return ENOTSUP;
 }
 
+/**
+ * @brief Set the daos iod objec
+ * 
+ * 设置IO描述符的值(single value)，包括akey,type等
+ * 
+ * @param create bool型，为true时设置size
+ */
 static void
 set_daos_iod(bool create, daos_iod_t *iod, char *buf, size_t size)
 {
@@ -1124,6 +1148,11 @@ set_daos_iod(bool create, daos_iod_t *iod, char *buf, size_t size)
 	}
 }
 
+/**
+ * @brief Set the inode params object
+ * 
+ * 设置一系列INODE数组对应的文件描述符值
+ */
 static void
 set_inode_params(bool for_update, daos_iod_t *iods, daos_key_t *dkey)
 {
@@ -1140,6 +1169,17 @@ set_inode_params(bool for_update, daos_iod_t *iods, daos_key_t *dkey)
 	set_daos_iod(for_update, &iods[i++], OC_NAME, sizeof(daos_oclass_id_t));
 }
 
+/**
+ * @brief 根据super_oid打开对应的超级块
+ * 
+ * 
+ * @param coh 
+ * @param create 
+ * @param super_oid 
+ * @param attr 
+ * @param oh 
+ * @return int 
+ */
 static int
 open_sb(daos_handle_t coh, bool create, daos_obj_id_t super_oid,
 	dfs_attr_t *attr, daos_handle_t *oh)
